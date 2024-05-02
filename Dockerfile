@@ -8,6 +8,10 @@ WORKDIR /app
 COPY . /app
 
 # 安装项目依赖
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 暴露端口，使得SMTP服务可以被访问
