@@ -1,5 +1,6 @@
 import psycopg2
 from aiosmtpd.smtp import AuthResult, LoginPassword
+from flask_bcrypt import check_password_hash
 from psycopg2 import pool
 
 import Config
@@ -24,7 +25,6 @@ class Authenticator:
             return fail_nothandled
         username = auth_data.login.decode()
         password = auth_data.password.decode()
-
         # Connect to the database
         conn = self.conn_pool.getconn()
         try:

@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Flask App</title>
+    <title>Easy mail</title>
+    <link rel="icon" href="../static/icon.ico">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -9,15 +10,18 @@
             padding: 0;
             background-color: #f0f0f0;
         }
+
         h1 {
             background-color: #333;
             color: #fff;
             padding: 10px 0;
             text-align: center;
         }
+
         h2 {
             color: #333;
         }
+
         input[type="text"], input[type="password"] {
             display: block;
             margin-bottom: 10px;
@@ -26,6 +30,7 @@
             border-radius: 5px;
             width: 200px;
         }
+
         button {
             padding: 10px 20px;
             background-color: #007BFF;
@@ -34,63 +39,80 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
         button:hover {
             background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <h1>Easy mail server</h1>
+<h1>Easy mail server</h1>
 
-    <div style="margin: 0 auto; width: 300px;">
-        <h2>Register</h2>
-        <label for="register-username"></label><input type="text" id="register-username" placeholder="Username">
-        <label for="register-password"></label><input type="password" id="register-password" placeholder="Password">
-        <button onclick="register()">Register</button>
+<div style="margin: 0 auto; width: 300px;">
+    <h2>Register</h2>
+    <label for="register-username"></label><input type="text" id="register-username" placeholder="Username">
+    <label for="register-password"></label><input type="password" id="register-password" placeholder="Password">
+    <button onclick="register()">Register</button>
 
-        <h2>Login</h2>
-        <label for="login-username"></label><input type="text" id="login-username" placeholder="Username">
-        <label for="login-password"></label><input type="password" id="login-password" placeholder="Password">
-        <button onclick="login()">Login</button>
+    <h2>Login</h2>
+    <label for="login-username"></label><input type="text" id="login-username" placeholder="Username">
+    <label for="login-password"></label><input type="password" id="login-password" placeholder="Password">
+    <button onclick="login()">Login</button>
 
-        <h2>Logout</h2>
-        <button onclick="logout()">Logout</button>
-    </div>
+    <h2>Logout</h2>
+    <button onclick="logout()">Logout</button>
+</div>
 
-    <script>
-        function register() {
-            var username = document.getElementById('register-username').value;
-            var password = document.getElementById('register-password').value;
-            fetch('/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: `username=${username}&password=${password}`
+<script>
+    function register() {
+        var username = document.getElementById('register-username').value;
+        var password = document.getElementById('register-password').value;
+        fetch('/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `username=${username}&password=${password}`
+        })
+            .then(response => response.text())
+            .then(data => alert(data));
+    }
+
+    function login() {
+        var username = document.getElementById('login-username').value;
+        var password = document.getElementById('login-password').value;
+        fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `username=${username}&password=${password}`
+        })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/mailbox';
+                } else {
+                    return response.text();
+                }
             })
-            .then(response => response.text())
-            .then(data => alert(data));
-        }
+            .then(data => {
+                if (data) {
+                    alert(data);
+                }
+            });
+    }
 
-        function login() {
-            var username = document.getElementById('login-username').value;
-            var password = document.getElementById('login-password').value;
-            fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: `username=${username}&password=${password}`
+    function logout() {
+        fetch('/logout')
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    return response.text();
+                }
             })
-            .then(response => response.text())
             .then(data => alert(data));
-        }
-
-        function logout() {
-            fetch('/logout')
-            .then(response => response.text())
-            .then(data => alert(data));
-        }
-    </script>
+    }
+</script>
 </body>
 </html>

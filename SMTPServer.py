@@ -23,7 +23,6 @@ async def run_smtp_server():
     # ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     # ssl_context.load_cert_chain(certfile='certificates/certificate.crt', keyfile='certificates/private.key')
     # Pass the SSL context to the SMTP server
-    # controller = Controller(CustomSMTPHandler(), hostname='localhost', port=465, ssl_context=ssl_context)
 
     authenticator = AuthSMTP.Authenticator()
     handler = SimpleMessageHandler.RelayerHandler()
