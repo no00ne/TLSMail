@@ -1,3 +1,7 @@
-flask~=2.2.5
-psycopg2~=2.9.9
-aiosmtpd~=1.4.5
+psycopg2==2.9.9
+flask==2.2.5
+aiosmtpd==1.4.5
+flask_bcrypt==1.0.1
+flask_login==0.6.3
+smtplib
+asyncio==3.5.3

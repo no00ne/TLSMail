@@ -1,3 +1,5 @@
+import ssl
+
 from flask import Flask, request, render_template, jsonify, request, redirect, url_for
 from flask_bcrypt import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -125,4 +127,6 @@ def load_user(user_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    context.load_cert_chain('certificates/certificate.crt', 'certificates/private.key')
+    app.run(host=Config.get_pg_host(),ssl_context=context,debug=True)

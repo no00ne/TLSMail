@@ -1,6 +1,5 @@
 import psycopg2
 from aiosmtpd.smtp import AuthResult, LoginPassword
-from flask_bcrypt import check_password_hash
 from psycopg2 import pool
 
 import Config
