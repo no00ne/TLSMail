@@ -53,6 +53,29 @@
             border-radius: 5px;
             box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
         }
+
+        /* Add styles for the table */
+        #mail-table {
+            border-collapse: collapse;
+            margin-top: 50px; /* Add distance between the table and the "Send Mail" section */
+        }
+
+        #mail-table th, #mail-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #mail-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        #mail-table th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #007BFF;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -65,6 +88,21 @@
     <label for="mail-content"></label><textarea id="mail-content" placeholder="Content" rows="10"></textarea>
     <button onclick="sendMail()">Send</button>
 </div>
+<div style="margin: 0 auto; width: 300px;">
+    <h2>Received Mail</h2>
+</div>
+<table id="mail-table" style="margin: 0 auto;width: 800px;">
+        <thead>
+        <tr>
+            <th>From</th>
+            <th>Time</th>
+            <th>Subject</th>
+            <th>Content-Type</th>
+            <th>Body</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
 <script>
     function sendMail() {
@@ -81,6 +119,21 @@
             .then(response => response.text())
             .then(data => alert(data));
     }
+
+    fetch('/receive_mail')
+        .then(response => response.json())
+        .then(mails => {
+            const tableBody = document.getElementById('mail-table').getElementsByTagName('tbody')[0];
+            mails.forEach(mail => {
+                const row = tableBody.insertRow();
+                row.insertCell().innerText = mail[0];  // Sender
+                row.insertCell().innerText = mail[1];  // Time
+                row.insertCell().innerText = mail[2];  // Subject
+                row.insertCell().innerText = mail[3];  // Content Type
+                row.insertCell().innerText = mail[4];  // Body
+            });
+        });
+
 </script>
 </body>
 </html>

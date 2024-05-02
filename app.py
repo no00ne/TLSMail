@@ -60,6 +60,19 @@ def send_mail():
     return 'Mail sent successfully'
 
 
+@app.route('/receive_mail', methods=['GET'])
+@login_required
+def receive_mail():
+    # return all emails in the database belong to login user
+    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
+                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    cur = conn.cursor()
+    cur.execute("SELECT sender,date,subject,ep.content_type,ep.body FROM public.mail join public.email_parts ep on mail.id = ep.email_id WHERE recipient = %s",
+                (current_user.id,))
+    mails = cur.fetchall()
+    return jsonify(mails)
+
+
 @app.route('/register', methods=['POST'])
 def register():
     username = request.form.get('username')
@@ -109,7 +122,6 @@ def load_user(user_id):
     if user_record is not None:
         return User(user_id, user_record[2])
     raise Exception('User not found')
-
 
 
 if __name__ == '__main__':
