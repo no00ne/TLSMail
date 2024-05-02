@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Mail Box</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        input[type="text"], textarea {
+            display: block;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .container {
+            margin: 0 auto;
+            width: 300px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+<h1>Mail Box</h1>
+
+<div style="margin: 0 auto; width: 300px;">
+    <h2>Send Mail</h2>
+    <label for="mail-to"></label><input type="text" id="mail-to" placeholder="To">
+    <label for="mail-subject"></label><input type="text" id="mail-subject" placeholder="Subject">
+    <label for="mail-content"></label><textarea id="mail-content" placeholder="Content" rows="10"></textarea>
+    <button onclick="sendMail()">Send</button>
+</div>
+
+<script>
+    function sendMail() {
+        var to = document.getElementById('mail-to').value;
+        var subject = document.getElementById('mail-subject').value;
+        var content = document.getElementById('mail-content').value;
+        fetch('/send_mail', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({to: to, subject: subject, content: content})
+        })
+            .then(response => response.text())
+            .then(data => alert(data));
+    }
+</script>
+</body>
+</html>
