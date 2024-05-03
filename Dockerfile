@@ -18,7 +18,7 @@ deb-src http://mirrors.aliyun.com/debian/ buster-backports main non-free contrib
 # 安装项目依赖
 RUN apt-get update && apt-get install -y \
     gcc \
-    libpq-dev \
+    libpq-dev
 
 RUN pip install --no-cache-dir -r requirements.txt
 
