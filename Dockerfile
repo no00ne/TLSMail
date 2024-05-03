@@ -12,13 +12,18 @@ deb-src http://mirrors.aliyun.com/debian/ buster main non-free contrib\n\
 deb http://mirrors.aliyun.com/debian-security buster/updates main\n\
 deb-src http://mirrors.aliyun.com/debian-security buster/updates main\n\
 deb http://mirrors.aliyun.com/debian/ buster-updates main non-free contrib\n\
-deb-src http://mirrors.aliyun.com/debian/ buster-updates main non-free contrib\n\
-deb http://mirrors.aliyun.com/debian/ buster-backports main non-free contrib\n\
-deb-src http://mirrors.aliyun.com/debian/ buster-backports main non-free contrib" > /etc/apt/sources.list
+deb-src http://mirrors.aliyun.com/debian/ buster-updates main non-free contrib" > /etc/apt/sources.list
 # 安装项目依赖
 RUN apt-get update && apt-get install -y \
     gcc \
-    libpq-dev
+    libpq-dev \
+    python3-venv
+
+# 创建虚拟环境
+RUN python3 -m venv venv
+
+# 激活虚拟环境
+RUN . venv/bin/activate
 
 # 更新pip到最新版本
 RUN pip install --upgrade pip

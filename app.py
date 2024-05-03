@@ -3,7 +3,7 @@ import ssl
 from flask import Flask, request, render_template, jsonify, request, redirect, url_for
 from flask_bcrypt import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from smtplib import SMTP
+from smtplib import SMTP_SSL
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -55,7 +55,7 @@ def send_mail():
     msg['Subject'] = subject
     msg.attach(MIMEText(content, 'plain'))
 
-    client = SMTP(Config.get_smtp_server(), Config.get_smtp_port())
+    client = SMTP_SSL(Config.get_smtp_server(), Config.get_smtp_port())
     client.login(current_user.id, current_user.password)
     client.send_message(msg)
 
@@ -127,6 +127,6 @@ def load_user(user_id):
 
 
 if __name__ == '__main__':
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain('certificates/certificate.crt', 'certificates/private.key')
-    app.run(host=Config.get_pg_host(),ssl_context=context,debug=True)
+    app.run(host=Config.get_flask_host(),ssl_context=context,debug=True)

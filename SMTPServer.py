@@ -36,6 +36,9 @@ def run():
         loop.run_forever()
     except KeyboardInterrupt:
         print("User abort indicated")
+    finally:
+        print("Cleaning up")
+        loop.close()
 
 
 if __name__ == '__main__':

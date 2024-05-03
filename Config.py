@@ -55,6 +55,8 @@ def get_pg_user():
 def get_pg_password():
     return config['POSTGRESQL']['pg.password']
 
+def get_flask_host():
+    return config['FLASK']['flask.host']
 
 def get_flask_server_url():
     return config['FLASK']['flask.server.url']
