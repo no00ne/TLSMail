@@ -20,7 +20,12 @@ RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev
 
-RUN pip install --no-cache-dir -r requirements.txt
+# 更新pip到最新版本
+RUN pip install --upgrade pip
+
+# 使用阿里云的pip源来安装Python依赖
+RUN pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r requirements.txt
+
 
 # 暴露端口，使得SMTP服务可以被访问
 EXPOSE 5000
