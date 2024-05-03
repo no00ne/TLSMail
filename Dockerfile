@@ -7,6 +7,14 @@ WORKDIR /app
 # 将当前目录的内容复制到工作目录中
 COPY . /app
 
+RUN echo "deb http://mirrors.aliyun.com/debian/ buster main non-free contrib\n\
+deb-src http://mirrors.aliyun.com/debian/ buster main non-free contrib\n\
+deb http://mirrors.aliyun.com/debian-security buster/updates main\n\
+deb-src http://mirrors.aliyun.com/debian-security buster/updates main\n\
+deb http://mirrors.aliyun.com/debian/ buster-updates main non-free contrib\n\
+deb-src http://mirrors.aliyun.com/debian/ buster-updates main non-free contrib\n\
+deb http://mirrors.aliyun.com/debian/ buster-backports main non-free contrib\n\
+deb-src http://mirrors.aliyun.com/debian/ buster-backports main non-free contrib" > /etc/apt/sources.list
 # 安装项目依赖
 RUN apt-get update && apt-get install -y \
     gcc \
