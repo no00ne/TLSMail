@@ -4,6 +4,9 @@ config = configparser.ConfigParser()
 config.read('mail.properties')
 
 
+def get_smtp_host():
+    return config['SMTP']['smtp.host']
+
 def get_smtp_server():
     return config['SMTP']['smtp.server']
 

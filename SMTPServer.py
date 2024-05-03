@@ -9,7 +9,7 @@ import Config
 import SimpleMessageHandler
 
 # SMTP Configuration
-host = Config.get_smtp_server()
+host = Config.get_smtp_host()
 port = Config.get_smtp_port()
 
 
@@ -22,7 +22,7 @@ async def run_smtp_server():
     authenticator = AuthSMTP.Authenticator()
     handler = SimpleMessageHandler.RelayerHandler()
     controller = Controller(handler, hostname=host, port=port, authenticator=authenticator, auth_required=True,
-                            ssl_context=ssl_context,
+                            tls_context=ssl_context,
                             auth_require_tls=True)  # 使用自定义的邮件处理器
     controller.start()
 

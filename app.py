@@ -3,7 +3,7 @@ import ssl
 from flask import Flask, request, render_template, jsonify, request, redirect, url_for
 from flask_bcrypt import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from smtplib import SMTP_SSL
+from smtplib import SMTP
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -55,7 +55,8 @@ def send_mail():
     msg['Subject'] = subject
     msg.attach(MIMEText(content, 'plain'))
 
-    client = SMTP_SSL(Config.get_smtp_server(), Config.get_smtp_port())
+    client = SMTP(Config.get_smtp_server(), Config.get_smtp_port())
+    client.starttls()
     client.login(current_user.id, current_user.password)
     client.send_message(msg)
 
