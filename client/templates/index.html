@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>E2E client</title>
+    <link rel="icon" href="../../static/icon.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            background-color: #4a4a4a;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        h2 {
+            color: #4a4a4a;
+        }
+
+        input[type="text"], input[type="password"] {
+            display: block;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 200px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #6c757d;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+<h1>E2E client</h1>
+<div id="loading" style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+    <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%;">
+        Loading...
+    </div>
+</div>
+<div style="margin: 0 auto; width: 300px;">
+    <h2>Login</h2>
+    <label for="login-username"></label><input type="text" id="login-username" placeholder="Username">
+    <label for="login-password"></label><input type="password" id="login-password" placeholder="Password">
+    <button onclick="login()">Login</button>
+
+    <h2>Logout</h2>
+    <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+    const host = 'https://124.71.57.244:5000';
+
+    function login() {
+        document.getElementById('loading').style.display = 'block';
+        event.preventDefault();
+        var username = document.getElementById('login-username').value;
+        var password = document.getElementById('login-password').value;
+        fetch('/store_username', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `username=${username}&password=${password}`
+        })
+            .then(response => {
+                fetch(host + '/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `username=${username}&password=${password}`
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            window.location.href = '/mailbox';
+                        } else {
+                            return response.text();
+                        }
+                    })
+                    .then(data => {
+                        if (data) {
+                            alert(data);
+                        }
+                    })
+                    .finally(() => {
+                        document.getElementById('loading').style.display = 'none';
+                    })
+            })
+    }
+
+    function logout() {
+        fetch(host + '/logout')
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    return response.text();
+                }
+            })
+            .then(data => alert(data));
+    }
+</script>
+</body>
+</html>
