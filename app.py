@@ -4,6 +4,7 @@ from flask import Flask, request, render_template, jsonify, request, redirect, u
 from flask_bcrypt import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from smtplib import SMTP
+from flask_cors import CORS
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -12,6 +13,7 @@ import Config
 
 app = Flask(__name__)
 app.secret_key = 'your secret key'
+CORS(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -74,6 +76,53 @@ def receive_mail():
                 (current_user.id,))
     mails = cur.fetchall()
     return jsonify(mails)
+
+@app.route('/send_mail_with_sender', methods=['POST'])
+def send_mail_with_sender():
+    data = request.get_json()
+    from_email = data['from']
+    to = data['to']
+    subject = data['subject']
+    content = data['content']
+    from_password = data['password']
+
+    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
+                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM public.User WHERE username = %s", (from_email,))
+    user_record = cur.fetchone()
+    if user_record is not None and user_record[2] == from_password:
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to
+        msg['Subject'] = subject
+        msg.attach(MIMEText(content, 'plain'))
+
+        client = SMTP(Config.get_smtp_server(), Config.get_smtp_port())
+        client.starttls()
+        client.login(from_email, from_password)
+        client.send_message(msg)
+
+        return 'Mail sent successfully'
+    return 'Invalid username or password'
+
+@app.route('/receive_mail_with_receiver', methods=['POST'])
+def receive_mail_with_receiver():
+    receiver = request.form.get('username')
+    password = request.form.get('password')
+    # return all emails in the database belong to login user
+    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
+                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM public.User WHERE username = %s", (receiver,))
+    user_record = cur.fetchone()
+    if user_record is not None and user_record[2] == password:
+        cur.execute(
+            "SELECT sender,date,subject,ep.body FROM public.mail join public.email_parts ep on mail.id = ep.email_id WHERE recipient = %s",
+            (receiver,))
+        mails = cur.fetchall()
+        return jsonify(mails)
+    return 'Invalid username or password'
 
 
 @app.route('/register', methods=['POST'])

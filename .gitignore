@@ -3,3 +3,8 @@ __pycache__
 .vscode
 .log
 .venv
+
+# client gitignore
+node_modules
+build
+/client/.idea
