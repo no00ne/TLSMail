@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 
 import psycopg2
 import Config
+from encrypt import main_encrypt
 
 app = Flask(__name__)
 app.secret_key = 'your secret key'
@@ -48,8 +49,11 @@ def mailbox():
 def send_mail():
     data = request.get_json()
     to = data['to']
-    subject = data['subject']
-    content = data['content']
+    subject = data['subject'].encode('utf-8')
+    content = data['content'].encode('utf-8')
+    pieces = [subject, content]
+
+    nonce, encrypted_manifest, tag, keys_and_hashes = main_encrypt(pieces,, null
 
     msg = MIMEMultipart()
     msg['From'] = current_user.id
