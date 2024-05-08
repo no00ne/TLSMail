@@ -53,7 +53,6 @@ def send_mail():
     content = data['content'].encode('utf-8')
     pieces = [subject, content]
 
-    nonce, encrypted_manifest, tag, keys_and_hashes = main_encrypt(pieces,, null
 
     msg = MIMEMultipart()
     msg['From'] = current_user.id

@@ -56,8 +56,10 @@ def create_manifest(pieces):
 
 # 2D8LBB37VVGC
 def main_encrypt(pieces, bcc, puks, user_ids, version, sender_device_key):
-    # puks_bytes 第一个是发送者的puk，后面是接收者的puk
+    # puks 第一个是发送者的puk，后面是接收者的puk
     # user_ids 和 puks_bytes同样结构
+    # sender_device_key是发送者的私钥
+
     manifest, ciphertexts = create_manifest(pieces)
     shared_symmetric_key = os.urandom(32)  # Shared symmetric key for the manifest
     manifest_encrypted = cake_aes_encrypt(manifest, shared_symmetric_key)
@@ -70,6 +72,7 @@ def main_encrypt(pieces, bcc, puks, user_ids, version, sender_device_key):
     recipient_digests = []
     recipient_ciphertexts = []
     xcha_nonces=[]
+
     for puk in puks:
         recipient_box_ciphertext, signature, xcha_nonce, recipient_digest = process_recipient(
             private_key, puk, user_ids, manifest_encrypted_hash, bcc_commitment, version, shared_symmetric_key,
@@ -78,6 +81,7 @@ def main_encrypt(pieces, bcc, puks, user_ids, version, sender_device_key):
         recipient_digests.append(recipient_digest)
         recipient_ciphertexts.append(recipient_box_ciphertext)
         xcha_nonces.append(xcha_nonce)
+
 
     recipient_digests_signature = create_recipient_list_signature(sender_device_key, recipient_digests)
     return ciphertexts, bcc_commitment, commitment_key, recipient_digests_signature, public_key, recipient_ciphertexts,manifest_encrypted,manifest_encrypted_hash,xcha_nonces
@@ -159,7 +163,7 @@ def process_recipient(ephemeral_private_key, puk, user_ids, manifest_hash, bcc_c
     data_to_encrypt = shared_symmetric_key + signature
     recipient_box_ciphertext = cipher.encrypt(xcha_nonce, data_to_encrypt, None)
 
-    return recipient_box_ciphertext, signature, xcha_nonce, recipient_digest
+    return recipient_box_ciphertext, xcha_nonce, recipient_digest
 
 # 示例用法
 

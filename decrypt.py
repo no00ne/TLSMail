@@ -39,7 +39,7 @@ def cake_aes_decrypt(ciphertext, key):
     return plaintext
 
 
-def decrypt_email(ciphertexts, recipient_box_ciphertext, ephemeral_public_key, private_user_key, puk,
+def decrypt_email(signature1,ciphertexts, recipient_box_ciphertext, ephemeral_public_key, private_user_key, puk,
                   manifest_encrypted, manifest_hash, bcc_commitment, version, xcha_nonce, user_ids,
                   sender_device_key=None, ):
     # (a) Compute recipient-associated digest and Diffie-Hellman shared secret

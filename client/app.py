@@ -3,6 +3,7 @@ from flask_bcrypt import generate_password_hash
 import psycopg2
 
 import Config
+import PUKs
 import gpg
 
 app = Flask(__name__)
@@ -31,6 +32,7 @@ def store_username():
     username = request.form.get('username')
     global current_user
     current_user = username
+    PUKs.generate_and_store_keys(username)
     global current_password
     global current_passphrase
     current_passphrase = request.form.get('password')
