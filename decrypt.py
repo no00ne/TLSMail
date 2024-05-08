@@ -119,7 +119,7 @@ public_keys = [private_key.public_key() for private_key in private_keys]
 user_ids = "sender@example.com,recipient1@example.com,recipient2@example.com"
 version = "1.0"
 
-ciphertexts, bcc_commitment, commitment_key, recipient_digests_signature, public_key, recipient_ciphertexts, manifest_encrypted, manifest_encrypted_hash, xcha_nonces = main_encrypt(
+ciphertexts, bcc_commitment, commitment_key, recipient_digests_signature, public_key, recipient_ciphertexts, manifest_encrypted, manifest_encrypted_hash, xcha_nonces,signatures = main_encrypt(
     pieces, bcc, public_keys, user_ids, version, sender_device_private_key
 )
 
@@ -131,7 +131,7 @@ print("Ephemeral Public Key:",
       public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
 print("Recipient Ciphertexts:", [ciphertext.hex() for ciphertext in recipient_ciphertexts])
 
-manifest = decrypt_email(ciphertexts, recipient_ciphertexts[0], public_key, private_keys[0], public_keys[0],
+manifest = decrypt_email(signatures[0],ciphertexts, recipient_ciphertexts[0], public_key, private_keys[0], public_keys[0],
                          manifest_encrypted, manifest_encrypted_hash,
                          bcc_commitment, version, xcha_nonces[0], user_ids, sender_device_key=sender_device_public_key)
 

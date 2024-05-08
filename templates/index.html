@@ -3,6 +3,7 @@
 <head>
     <title>Easy mail</title>
     <link rel="icon" href="../static/icon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/libsodium-wrappers/0.7.9/libsodium-wrappers.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -67,6 +68,7 @@
     function register() {
         var username = document.getElementById('register-username').value;
         var password = document.getElementById('register-password').value;
+        generatePUKs();
         fetch('/register', {
             method: 'POST',
             headers: {
@@ -77,7 +79,39 @@
             .then(response => response.text())
             .then(data => alert(data));
     }
+    async function generatePUKs() {
+            await sodium.ready;
 
+            // 生成32字节秘密种子
+            const secretSeed = sodium.randombytes_buf(32);
+            console.log("Secret Seed:", sodium.to_hex(secretSeed));
+
+            // 使用HKDF生成不同的32字节密钥
+            const privateX25519 = hkdf(secretSeed, "Zoombase-2-ClientOnly-KDF-PerUserX25519");
+            const emailSeed = hkdf(secretSeed, "Zoombase-2-ClientOnly-KDF-PerUserEmailSeed");
+            const privateEmailX25519 = hkdf(emailSeed, "Zoombase-2-ClientOnly-KDF-PerUserEmailX25519");
+            const voicemailSeed = hkdf(secretSeed, "Zoombase-2-ClientOnly-KDF-PerUserVoicemailSeed");
+            const privateVoicemailX25519 = hkdf(voicemailSeed, "Zoombase-2-ClientOnly-KDF-PerUserVoicemailX25519");
+            const symmetricKey = hkdf(secretSeed, "Zoombase-2-ClientOnly-KDF-PerUserSymmetricKey");
+
+            const privateKeyEmail = sodium.crypto_sign_seed_keypair(privateEmailX25519);
+            const publicKeyEmail = privateKeyEmail.publicKey;
+
+            // 将密钥存储到LocalStorage中
+            localStorage.setItem('privateX25519', sodium.to_base64(privateX25519));
+            localStorage.setItem('emailSeed', sodium.to_base64(emailSeed));
+            localStorage.setItem('privateEmailX25519', sodium.to_base64(privateEmailX25519));
+            localStorage.setItem('publicEmailX25519', sodium.to_base64(publicKeyEmail));
+            localStorage.setItem('voicemailSeed', sodium.to_base64(voicemailSeed));
+            localStorage.setItem('privateVoicemailX25519', sodium.to_base64(privateVoicemailX25519));
+            localStorage.setItem('symmetricKey', sodium.to_base64(symmetricKey));
+        }
+    function hkdf(secret, info) {
+            const salt = new Uint8Array(32).fill(0);  // 使用全零盐值
+            const hkdfExtract = sodium.crypto_auth_hmacsha256(salt, secret);
+            const hkdfExpand = sodium.crypto_auth_hmacsha256(hkdfExtract, info);
+            return hkdfExpand.slice(0, 32);
+        }
     function login() {
         var username = document.getElementById('login-username').value;
         var password = document.getElementById('login-password').value;
