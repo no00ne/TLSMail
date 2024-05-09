@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <title>E2E client</title>
-    <link rel="icon" href="../../static/icon.ico">
+    <link rel="icon" href="{{ url_for('static', filename='icon.ico') }}">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -55,9 +55,18 @@
 </div>
 <div style="margin: 0 auto; width: 300px;">
     <h2>Login</h2>
-    <label for="login-username"></label><input type="text" id="login-username" placeholder="Username">
-    <label for="login-password"></label><input type="password" id="login-password" placeholder="Password">
-    <button onclick="login()">Login</button>
+    <label for="login-username">Username:</label><br>
+    <input type="text" id="login-username" placeholder="Username"><br>
+    <label for="login-password">Password:</label><br>
+    <input type="password" id="login-password" placeholder="Password"><br>
+    <button onclick="login(event)">Login</button>
+
+    <h2>Register</h2>
+    <label for="register-username">Username:</label><br>
+    <input type="text" id="register-username" placeholder="Username"><br>
+    <label for="register-password">Password:</label><br>
+    <input type="password" id="register-password" placeholder="Password"><br>
+    <button onclick="register(event)">Register</button>
 
     <h2>Logout</h2>
     <button onclick="logout()">Logout</button>
@@ -66,9 +75,9 @@
 <script>
     const host = 'https://124.71.57.244:5000';
 
-    function login() {
-        document.getElementById('loading').style.display = 'block';
+    function login(event) {
         event.preventDefault();
+        document.getElementById('loading').style.display = 'block';
         var username = document.getElementById('login-username').value;
         var password = document.getElementById('login-password').value;
         fetch('/store_username', {
@@ -76,7 +85,7 @@
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: `username=${username}&password=${password}`
+            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
         })
             .then(response => {
                 fetch(host + '/login', {
@@ -84,7 +93,7 @@
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: `username=${username}&password=${password}`
+                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
                 })
                     .then(response => {
                         if (response.ok) {
@@ -104,6 +113,36 @@
             })
     }
 
+    function register(event) {
+        event.preventDefault();
+        document.getElementById('loading').style.display = 'block';
+        var username = document.getElementById('register-username').value;
+        var password = document.getElementById('register-password').value;
+
+        fetch(host + '/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+        })
+            .then(response => {
+                if (response.ok) {
+                    alert('Registration successful! Please log in.');
+                } else {
+                    return response.text();
+                }
+            })
+            .then(data => {
+                if (data) {
+                    alert(data);
+                }
+            })
+            .finally(() => {
+                document.getElementById('loading').style.display = 'none';
+            });
+    }
+
     function logout() {
         fetch(host + '/logout')
             .then(response => {
@@ -118,3 +157,4 @@
 </script>
 </body>
 </html>
+

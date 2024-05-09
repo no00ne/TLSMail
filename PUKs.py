@@ -2,7 +2,7 @@ import os
 
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
@@ -52,7 +52,7 @@ def generate_and_store_keys(directory):
     save_to_file(directory, 'symmetric_key.bin', symmetric_key)
 
     # Generate Ed25519 key pair for email
-    private_key_email = ed25519.Ed25519PrivateKey.from_private_bytes(private_email_x25519)
+    private_key_email = x25519.x25519PrivateKey.from_private_bytes(private_email_x25519)
     public_key_email = private_key_email.public_key()
 
     # Save the public key as binary

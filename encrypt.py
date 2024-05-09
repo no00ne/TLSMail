@@ -1,6 +1,6 @@
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives.hmac import HMAC
-from cryptography.hazmat.primitives.asymmetric import x25519, ed25519
+from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives import hashes, hmac, serialization
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -74,7 +74,7 @@ def main_encrypt(pieces, bcc, puks, user_ids, version, sender_device_key):
     xcha_nonces=[]
 
     for puk in puks:
-        recipient_box_ciphertext, signature, xcha_nonce, recipient_digest = process_recipient(
+        recipient_box_ciphertext,  xcha_nonce, recipient_digest = process_recipient(
             private_key, puk, user_ids, manifest_encrypted_hash, bcc_commitment, version, shared_symmetric_key,
             sender_device_key
         )

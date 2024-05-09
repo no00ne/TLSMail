@@ -131,8 +131,8 @@ print("Ephemeral Public Key:",
       public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
 print("Recipient Ciphertexts:", [ciphertext.hex() for ciphertext in recipient_ciphertexts])
 
-manifest = decrypt_email(ciphertexts, recipient_ciphertexts[0], public_key, private_keys[0], public_keys[0],
-                         manifest_encrypted, manifest_encrypted_hash,
-                         bcc_commitment, version, xcha_nonces[0], user_ids, sender_device_key=sender_device_public_key)
+decrypted_pieces = decrypt_email(ciphertexts, recipient_ciphertexts[0], public_key, private_keys[0], public_keys[0],
+                                manifest_encrypted, manifest_encrypted_hash,
+                             bcc_commitment, version, xcha_nonces[0], user_ids, sender_device_key=sender_device_public_key)
 
-print("Decrypted Manifest:", manifest)
+print("Decrypted Manifest:", decrypted_pieces)

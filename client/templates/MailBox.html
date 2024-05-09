@@ -45,7 +45,6 @@
             background-color: #0056b3;
         }
 
-        /* Add styles for the table */
         #mail-table {
             border-collapse: collapse;
             margin-top: 20px;
@@ -77,7 +76,7 @@
             background-color: #fff;
             border-radius: 5px;
             box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px; /* 添加 mail-section 之间的空白 */
+            margin-bottom: 20px;
         }
 
         .input-box {
@@ -99,19 +98,19 @@
     </div>
 </div>
 <div class="mail-section">
-    <button onclick="generate_key()">Generate your Key first</button>
     <h2>Send Mail</h2>
     <label for="mail-to">To:</label><br>
     <input type="text" id="mail-to" placeholder="Enter recipient email"><br>
+    <label for="mail-cc">CC:</label><br>
+    <input type="text" id="mail-cc" placeholder="Enter CC email addresses"><br>
+    <label for="mail-bcc">BCC:</label><br>
+    <input type="text" id="mail-bcc" placeholder="Enter BCC email addresses"><br>
     <label for="mail-subject">Subject:</label><br>
     <input type="text" id="mail-subject" placeholder="Enter email subject"><br>
     <label for="mail-content">Content:</label><br>
     <textarea id="mail-content" placeholder="Enter email content" rows="10"></textarea><br>
     <button onclick="sendMail()">Send</button>
-    <br></br>
-    <label for="mail-content">Generate Key:</label><br>
 </div>
-
 
 <div class="mail-section">
     <h2>Received Mail</h2>
@@ -119,8 +118,10 @@
         <thead>
         <tr>
             <th>From</th>
+            <th>To</th>
             <th>Time</th>
             <th>Subject</th>
+            <th>CC</th>
             <th>Body</th>
         </tr>
         </thead>
@@ -133,7 +134,7 @@
         <label for="output-text">Output:</label><br>
         <textarea id="output-text" placeholder="Input" rows="3"></textarea>
     </div>
-    <button class="button">Button</button>
+    <button class="button">Decrypt</button>
     <div class="output-box">
         <label for="output-text2">Output:</label><br>
         <textarea id="output-text2" placeholder="Output" rows="3"></textarea>
@@ -153,6 +154,8 @@
                 from = data.username;
                 password = data.password;
                 var to = document.getElementById('mail-to').value;
+                var cc = document.getElementById('mail-cc').value;
+                var bcc = document.getElementById('mail-bcc').value;
                 var subject = document.getElementById('mail-subject').value;
                 var content = document.getElementById('mail-content').value;
                 fetch('/encrypt_message', {
@@ -165,8 +168,9 @@
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Failed to encrypt message, check the recipient email address.');
-                        }else
+                        } else {
                             return response.json();
+                        }
                     })
                     .then(data => {
                         content = data.encrypted_message;
@@ -178,6 +182,8 @@
                             body: JSON.stringify({
                                 from: from,
                                 to: to,
+                                cc: cc,
+                                bcc: bcc,
                                 subject: subject,
                                 content: content,
                                 password: password
@@ -190,21 +196,6 @@
                         document.getElementById('loading').style.display = 'none';
                     });
             });
-    }
-
-    async function generate_key() {
-        try {
-            document.getElementById('loading').style.display = 'block';
-            const response = await fetch('/generate_key');
-            const data = await response.json();
-            let title = "Please remember your private key: ";
-            alert(title + "\n" + data.private_key);
-            console.log(data.private_key);
-        } catch (error) {
-            console.error('Error:', error);
-        } finally {
-            document.getElementById('loading').style.display = 'none';
-        }
     }
 
     fetch('/access_username')
@@ -225,10 +216,12 @@
                     const tableBody = document.querySelector('#mail-table tbody');
                     mails.forEach(mail => {
                         const row = tableBody.insertRow();
-                        row.insertCell().innerText = mail[0];  // Sender
-                        row.insertCell().innerText = mail[1];  // Time
-                        row.insertCell().innerText = mail[2];  // Subject
-                        row.insertCell().innerText = mail[3];  // Body
+                        row.insertCell().innerText = mail.sender;  // Sender
+                        row.insertCell().innerText = mail.receiver;  // To
+                        row.insertCell().innerText = mail.date;  // Time
+                        row.insertCell().innerText = mail.subject;  // Subject
+                        row.insertCell().innerText = mail.cc.join(', ');  // CC
+                        row.insertCell().innerText = mail.content;  // Body
                     });
                     // 获取表格元素
                     var table = document.getElementById('mail-table');
@@ -237,7 +230,7 @@
                     for (var i = 0; i < table.rows.length; i++) {
                         table.rows[i].onclick = function () {
                             // 获取点击的行的"Body"列的内容
-                            var bodyContent = this.cells[3].innerText;
+                            var bodyContent = this.cells[5].innerText;
 
                             // 将内容打印到第一个output box中
                             document.getElementById('output-text').value = bodyContent;
@@ -245,46 +238,32 @@
                     }
                 });
         });
-    window.onload = function () {
-        // 获取表格元素
-        var table = document.getElementById('mail-table');
 
-        // 为表格的每一行添加点击事件监听器
-        for (var i = 0; i < table.rows.length; i++) {
-            table.rows[i].onclick = function () {
-                // 获取点击的行的"Body"列的内容
-                var bodyContent = this.cells[3].innerText;
-
-                // 将内容打印到第一个output box中
-                document.getElementById('output-text').value = bodyContent;
-            };
-        }
-    };
     document.querySelector('.button').addEventListener('click', async function() {
-    // 获取 output-text 的值
-    let encryptedText = document.getElementById('output-text').value;
+        // 获取 output-text 的值
+        let encryptedText = document.getElementById('output-text').value;
 
-    // 发送 POST 请求到解密接口
-    let response = await fetch('/decrypt_message', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content: encryptedText })
+        // 发送 POST 请求到解密接口
+        let response = await fetch('/decrypt_message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content: encryptedText })
+        });
+
+        // 检查响应是否成功
+        if (!response.ok) {
+            alert('Failed to decrypt message, check the server.');
+            return;
+        }
+
+        // 解析响应体
+        let data = await response.json();
+
+        // 将解密后的内容显示在 output-text2 中
+        document.getElementById('output-text2').value = data.decrypted_message;
     });
-
-    // 检查响应是否成功
-    if (!response.ok) {
-        alert('Failed to decrypt message, check the server.');
-        return;
-    }
-
-    // 解析响应体
-    let data = await response.json();
-
-    // 将解密后的内容显示在 output-text2 中
-    document.getElementById('output-text2').value = data.decrypted_message;
-});
 </script>
 </body>
 </html>
