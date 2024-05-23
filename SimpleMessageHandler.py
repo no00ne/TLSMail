@@ -18,9 +18,8 @@ import json
 
 
 class RelayerHandler:
-    def __init__(self, pg_database, pg_user, pg_password, pg_host, pg_port):
-        self.conn = psycopg2.connect(database=pg_database, user=pg_user, password=pg_password, host=pg_host,
-                                     port=pg_port)
+    def __init__(self):
+        self.conn = psycopg2.connect(database=pg_database, user=pg_user, password=pg_password, host=pg_host,port=pg_port)
 
     async def handle_DATA(self, server, session, envelope):
         mail_from = envelope.mail_from

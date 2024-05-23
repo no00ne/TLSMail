@@ -4,13 +4,14 @@ import os
 from typing import List, Optional, Tuple
 
 import psycopg2
+import requests
 from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
 from flask import Flask, render_template
 from flask import request, jsonify
 from flask_bcrypt import generate_password_hash, check_password_hash
 
 import Config
-import PUKs  # 假设这是你自己的模块
+import PUKs
 import gpg
 from decrypt import decrypt_email
 from encrypt import main_encrypt
@@ -21,6 +22,7 @@ current_user = None
 current_password = None
 current_skey = None
 current_passphrase = None
+url='https://26.26.26.1:5000/'
 gnupg = gpg.GPG()
 pg_host = Config.get_pg_host()
 pg_port = Config.get_pg_port()
@@ -49,26 +51,31 @@ def read_from_file(directory, filename):
 def register():
     username = request.form.get('username')
     password = request.form.get('password')
-
+    if not username or not password:
+        return  'Both username and password are required!' , 400
     print("test")  # Debugging statement
 
     hashed_password = generate_password_hash(password).decode('utf-8')
     PUKs.generate_and_store_keys(username)
     public_key_email_bytes = read_from_file(username, 'public_email_x25519.bin')
+    data = {
+        'username': username,
+        'hashed_password': hashed_password,
+        'public_key_email_bytes': public_key_email_bytes
+    }
+    try:
+        response = requests.post(url+"/register", data=data, verify=False)
+        if response.status_code == 200:
+            print("Registration successful!")
+            print(response.text)
+            return 'User registered successfully'
+        else:
+            print("Registration failed!")
+            print(response.text)
 
-    conn = get_db_connection()
-    with conn.cursor() as cur:
-        cur.execute("SELECT COUNT(*) FROM public.\"user\" WHERE username = %s", (username,))
-        if cur.fetchone()[0] > 0:
-            conn.close()
-            return 'Username already exists', 400
-
-        cur.execute("INSERT INTO public.\"user\" (username, password, public_key_email_bytes) VALUES (%s, %s, %s)",
-                    (username, hashed_password, public_key_email_bytes))
-        conn.commit()
-    conn.close()
-    print('User registered successfully')
-    return 'User registered successfully', 200
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+        return 'Failed to communicate with the lower application', 500
 
 
 @app.route('/store_username', methods=['POST'])
@@ -294,5 +301,5 @@ def receive_mail_with_receiver():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=5000)
 

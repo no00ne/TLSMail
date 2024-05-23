@@ -51,7 +51,7 @@ def send_mail():
     to = data['to']
     subject = data['subject'].encode('utf-8')
     content = data['content'].encode('utf-8')
-    pieces = [subject, content]
+
 
 
     msg = MIMEMultipart()
@@ -131,16 +131,21 @@ def receive_mail_with_receiver():
 @app.route('/register', methods=['POST'])
 def register():
     username = request.form.get('username')
-    password = request.form.get('password')
+    hashed_password = request.form.get('hashed_password')
+    public_key_email_bytes = request.form.get('public_key_email_bytes')
+
     conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
                             user=Config.get_pg_user(), password=Config.get_pg_password())
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM public.User WHERE username = %s", (username,))
-    if cur.fetchone() is not None:
-        return 'User already exists'
-    hashed_password = generate_password_hash(password, 10).decode('utf-8')
-    cur.execute("INSERT INTO public.User (username, password) VALUES (%s, %s)", (username, hashed_password))
-    conn.commit()
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM public.user WHERE username = %s", (username,))
+        if cur.fetchone()[0] > 0:
+            conn.close()
+            return 'Username already exists', 400
+        hashed_hashed_password = generate_password_hash(hashed_password, 10).decode('utf-8')
+        cur.execute("INSERT INTO public.user (username, password, public_key_email_bytes) VALUES (%s, %s, %s)",
+                    (username, hashed_hashed_password, public_key_email_bytes))
+        conn.commit()
+    conn.close()
     return 'Registered successfully'
 
 

@@ -10,7 +10,7 @@ import SimpleMessageHandler
 
 # SMTP Configuration
 host = Config.get_smtp_host()
-port = Config.get_smtp_port()
+port = 5880
 
 
 async def run_smtp_server():

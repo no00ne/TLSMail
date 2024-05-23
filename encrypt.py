@@ -54,10 +54,10 @@ def create_manifest(pieces):
     return manifest, ciphertexts
 
 
-# 2D8LBB37VVGC
+
 def main_encrypt(pieces, bcc, puks, user_ids, version, sender_device_key):
-    # puks 第一个是发送者的puk，后面是接收者的puk
-    # user_ids 和 puks_bytes同样结构
+    # puks 第一个是发送者的puk，后面是接收者的puk 是x25519公钥[]
+    # user_ids 和 puks同样结构
     # sender_device_key是发送者的私钥
 
     manifest, ciphertexts = create_manifest(pieces)
