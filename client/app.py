@@ -58,13 +58,18 @@ def register():
     hashed_password = generate_password_hash(password).decode('utf-8')
     PUKs.generate_and_store_keys(username)
     public_key_email_bytes = read_from_file(username, 'public_email_x25519.bin')
-    data = {
-        'username': username,
-        'hashed_password': hashed_password,
-        'public_key_email_bytes': public_key_email_bytes
-    }
+
+
+
     try:
-        response = requests.post(url+"/register", data=data, verify=False)
+        # Convert public_key_email_bytes to a format that can be sent in the request
+        files = {
+            'username': (None, username),
+            'hashed_password': (None, hashed_password),
+            'public_key_email_bytes': ('public_email_x25519.bin', public_key_email_bytes)
+        }
+
+        response = requests.post(url + "/register", files=files, verify=False)
         if response.status_code == 200:
             print("Registration successful!")
             print(response.text)
@@ -72,6 +77,7 @@ def register():
         else:
             print("Registration failed!")
             print(response.text)
+            return 'Registration failed', response.status_code
 
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
