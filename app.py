@@ -75,8 +75,7 @@ def send_mail():
 @login_required
 def receive_mail():
     # return all emails in the database belong to login user
-    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
-                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    conn =getConnect()
     cur = conn.cursor()
     cur.execute("SELECT sender,date,subject,ep.content_type,ep.body FROM public.mail join public.email_parts ep on mail.id = ep.email_id WHERE recipient = %s",
                 (current_user.id,))
@@ -92,8 +91,7 @@ def send_mail_with_sender():
     content = data['content']
     from_password = data['password']
 
-    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
-                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    conn =getConnect()
     cur = conn.cursor()
     cur.execute("SELECT * FROM public.User WHERE username = %s", (from_email,))
     user_record = cur.fetchone()
@@ -117,8 +115,7 @@ def receive_mail_with_receiver():
     receiver = request.form.get('username')
     password = request.form.get('password')
     # return all emails in the database belong to login user
-    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
-                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    conn =getConnect()
     cur = conn.cursor()
     cur.execute("SELECT * FROM public.User WHERE username = %s", (receiver,))
     user_record = cur.fetchone()
@@ -147,8 +144,7 @@ def get_user_ids_and_public_keys() -> Tuple[List[int], List[ed25519.Ed25519Publi
     user_ids = []
     public_keys = []
 
-    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
-                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    conn =getConnect()
     with conn.cursor() as cur:
         # Construct the SQL query with placeholders for the addresses
         query = """
@@ -174,8 +170,7 @@ def upload_pkey():
     data = request.get_json()
     username = data['username']
     pkey = data['pkey']
-    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
-                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    conn = getConnect()
     with conn.cursor() as cur:
         cur.execute("INSERT INTO public.User (public_key_email_bytes,username) VALUES (%s,%s)", (pkey,username))
 
@@ -186,17 +181,16 @@ def upload_pkey():
 @app.route('/register', methods=['POST'])
 def register():
     username = request.form.get('username')
-    hashed_password = request.form.get('hashed_password')
+    password = request.form.get('password')
     public_key_email_bytes = request.files['public_key_email_bytes'].read()  # Read the file in binary mode
 
-    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
-                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    conn = getConnect()
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) FROM public.user WHERE username = %s", (username,))
         if cur.fetchone()[0] > 0:
             conn.close()
             return 'Username already exists', 400
-
+        hashed_password = generate_password_hash(password, 10).decode('utf-8')
         cur.execute("INSERT INTO public.user (username, password, public_key_email_bytes) VALUES (%s, %s, %s)",
                     (username, hashed_password, psycopg2.Binary(public_key_email_bytes)))
         conn.commit()
@@ -206,18 +200,24 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
+    hashed_password = None
     username = request.form.get('username')
     password = request.form.get('password')
-    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
-                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    conn = getConnect()
     cur = conn.cursor()
     cur.execute("SELECT * FROM public.User WHERE username = %s", (username,))
     user_record = cur.fetchone()
-    if user_record is not None and check_password_hash(user_record[2], password):
+    if user_record is not None and check_password_hash(user_record[2],hashed_password):
         user = User(username, user_record[2])
         login_user(user)
         return redirect(url_for('mailbox'))
-    return 'Invalid username or password'
+    return 'Invalid username or password',400
+
+
+def getConnect():
+    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
+                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    return conn
 
 
 @app.route('/logout')
@@ -229,8 +229,7 @@ def logout():
 
 @login_manager.user_loader
 def load_user(user_id):
-    conn = psycopg2.connect(host=Config.get_pg_host(), port=Config.get_pg_port(), dbname=Config.get_pg_database(),
-                            user=Config.get_pg_user(), password=Config.get_pg_password())
+    conn =getConnect()
     cur = conn.cursor()
     cur.execute("SELECT * FROM public.User WHERE username = %s", (user_id,))
     user_record = cur.fetchone()

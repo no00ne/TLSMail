@@ -1,11 +1,11 @@
 import datetime
 import json
 import os
-from typing import List, Optional, Tuple
 
 import psycopg2
 import requests
-from cryptography.hazmat.primitives.asymmetric import ed25519, x25519
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import x25519
 from flask import Flask, render_template
 from flask import request, jsonify
 from flask_bcrypt import generate_password_hash, check_password_hash
@@ -22,7 +22,7 @@ current_user = None
 current_password = None
 current_skey = None
 current_passphrase = None
-url='https://26.26.26.1:5000/'
+url = 'https://26.26.26.1:5000/'
 gnupg = gpg.GPG()
 pg_host = Config.get_pg_host()
 pg_port = Config.get_pg_port()
@@ -41,6 +41,7 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
+
 def read_from_file(directory, filename):
     path = os.path.join(directory, filename)
     with open(path, 'rb') as file:
@@ -52,20 +53,18 @@ def register():
     username = request.form.get('username')
     password = request.form.get('password')
     if not username or not password:
-        return  'Both username and password are required!' , 400
+        return 'Both username and password are required!', 400
     print("test")  # Debugging statement
 
-    hashed_password = generate_password_hash(password).decode('utf-8')
+    password = generate_password_hash(password).decode('utf-8')
     PUKs.generate_and_store_keys(username)
     public_key_email_bytes = read_from_file(username, 'public_email_x25519.bin')
-
-
 
     try:
         # Convert public_key_email_bytes to a format that can be sent in the request
         files = {
             'username': (None, username),
-            'hashed_password': (None, hashed_password),
+            'hashed_password': (None, password),
             'public_key_email_bytes': ('public_email_x25519.bin', public_key_email_bytes)
         }
 
@@ -148,44 +147,40 @@ def decrypt_message():
     return jsonify({'decrypted_message': decrypted_message})
 
 
-def get_user_ids_and_public_keys(
-        conn,
-        from_address: str,
-        to_address: List[str],
-        cc_address: Optional[List[str]] = None,
-        bcc_address: Optional[List[str]] = None
-) -> Tuple[List[int], List[ed25519.Ed25519PublicKey]]:
-    # Collect all relevant addresses into a single list
-    addresses = [from_address] + to_address
-    if cc_address:
-        addresses += cc_address
-    if bcc_address:
-        addresses += bcc_address
+def get_user_ids_and_public_keys(from_address, to_address, cc_address=None, bcc_address=None):
+    # 替换为实际服务器地址
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        'from': from_address,
+        'to': to_address,
+        'cc': cc_address,
+        'bcc': bcc_address
+    }
 
-    user_ids = []
-    public_keys = []
+    try:
+        response = requests.post(url + "get_user_ids_and_public_keys", data=data, verify=False)
+        response.raise_for_status()
 
-    with conn.cursor() as cur:
-        # Construct the SQL query with placeholders for the addresses
-        query = """
-            SELECT id, public_key_email_bytes
-            FROM public."user"
-            WHERE username = ANY(%s)
-            ORDER BY id;
-        """
-        cur.execute(query, (addresses,))
-        rows = cur.fetchall()
+        data = response.json()
+        try:
+            user_ids = data['user_ids']
+            public_keys_bytes = data['public_keys']
+            public_keys = [x25519.X25519PublicKey.from_public_bytes(bytes.fromhex(key)) for key in public_keys_bytes]
+            return user_ids, public_keys
+        except KeyError as e:
+            print(f"Missing key in response data: {e}")
+            raise
+        except ValueError as e:
+            print(f"Error processing public keys: {e}")
+            raise
+    except requests.RequestException as e:
+        print(f"HTTP request failed: {e}")
+        raise
 
-        for row in rows:
-            user_id = row[0]
-            public_key_bytes = row[1]
-            public_key = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
-            user_ids.append(user_id)
-            public_keys.append(public_key)
 
-    return user_ids, public_keys
+
 @app.route('/send_mail_with_sender', methods=['POST'])
-def send_mail_with_sender():
+def send_mail_with_sender(conn=None):
     data = request.get_json()
     from_address = data['from']
     to_address = data['to']
@@ -196,8 +191,14 @@ def send_mail_with_sender():
     password = data['password']
     pieces = [subject, content]
 
-    conn = get_db_connection()
-    user_ids, public_keys = get_user_ids_and_public_keys(conn, from_address, to_address, cc_address, bcc_address)
+    try:
+        user_ids, public_keys = get_user_ids_and_public_keys(from_address, to_address, cc_address, bcc_address)
+        print("User IDs:", user_ids)
+        print("Public Keys:",
+              [key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex() for
+               key in public_keys])
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
     sender_device_private_key = read_from_file(from_address, 'private_email_x25519.bin')
     sender_device_private_key = x25519.X25519PrivateKey.from_private_bytes(sender_device_private_key)
@@ -217,7 +218,12 @@ def send_mail_with_sender():
         'manifest_encrypted_hash': manifest_encrypted_hash,
         'xcha_nonces': xcha_nonces,
     }
+    sendmail(bcc_address, cc_address, encryption_data, from_address, to_address)
+    return jsonify({'message': 'Mail data stored successfully and encryption data sent to server'})
 
+
+def sendmail(bcc_address, cc_address, encryption_data, from_address, to_address):
+    conn = get_db_connection()
     # Store email and encryption data in the database
     with conn.cursor() as cur:
         cur.execute("""
@@ -232,9 +238,8 @@ def send_mail_with_sender():
             json.dumps(encryption_data)
         ))
         conn.commit()
-
     conn.close()
-    return jsonify({'message': 'Mail data stored successfully and encryption data sent to server'})
+
 
 @app.route('/receive_mail_with_receiver', methods=['POST'])
 def receive_mail_with_receiver():
@@ -308,4 +313,3 @@ def receive_mail_with_receiver():
 
 if __name__ == '__main__':
     app.run(port=5000)
-
