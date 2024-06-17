@@ -43,7 +43,18 @@ def decrypt_email(ciphertexts, recipient_box_ciphertext, ephemeral_public_key, p
                   manifest_encrypted, manifest_hash, bcc_commitment, version, xcha_nonce, user_ids,
                   sender_device_key=None, ):
     # (a) Compute recipient-associated digest and Diffie-Hellman shared secret
-
+    print("ciphertexts:", ciphertexts)
+    print("recipient_box_ciphertext:", recipient_box_ciphertext)
+    print("ephemeral_public_key:", ephemeral_public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
+    print("private_user_key:", private_user_key)
+    print("puk:", puk.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
+    print("manifest_encrypted:", manifest_encrypted)
+    print("manifest_hash:", manifest_hash)
+    print("bcc_commitment:", bcc_commitment)
+    print("version:", version)
+    print("xcha_nonce:", xcha_nonce)
+    print("user_ids:", user_ids)
+    print("sender_device_key:", sender_device_key)
     shared_secret = private_user_key.exchange(ephemeral_public_key)
 
     # (b) Derive key using HMACSHA256 with the shared secret
@@ -120,8 +131,7 @@ user_ids = "sender@example.com,recipient1@example.com,recipient2@example.com"
 version = "1.0"
 
 ciphertexts, bcc_commitment, commitment_key, recipient_digests_signature, public_key, recipient_ciphertexts, manifest_encrypted, manifest_encrypted_hash, xcha_nonces = main_encrypt(
-    pieces, bcc, public_keys, user_ids, version, sender_device_private_key
-)
+    pieces, bcc, public_keys, user_ids, version, sender_device_private_key)
 
 print("Ciphertexts:", ciphertexts)
 print("BCC Commitment:", bcc_commitment.hex())
@@ -131,8 +141,8 @@ print("Ephemeral Public Key:",
       public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
 print("Recipient Ciphertexts:", [ciphertext.hex() for ciphertext in recipient_ciphertexts])
 
-decrypted_pieces = decrypt_email(ciphertexts, recipient_ciphertexts[0], public_key, private_keys[0], public_keys[0],
+decrypted_pieces = decrypt_email(ciphertexts, recipient_ciphertexts[1], public_key, private_keys[1], public_keys[1],
                                 manifest_encrypted, manifest_encrypted_hash,
-                             bcc_commitment, version, xcha_nonces[0], user_ids, sender_device_key=sender_device_public_key)
+                             bcc_commitment, version, xcha_nonces[1], user_ids, sender_device_key=sender_device_public_key)
 
 print("Decrypted Manifest:", decrypted_pieces)

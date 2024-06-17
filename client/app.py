@@ -1,14 +1,14 @@
-import datetime
-import json
+import base64
 import os
 
 import psycopg2
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import x25519
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from flask import Flask, render_template
 from flask import request, jsonify
-from flask_bcrypt import generate_password_hash, check_password_hash
+from flask_bcrypt import check_password_hash
 
 import Config
 import PUKs
@@ -56,7 +56,6 @@ def register():
         return 'Both username and password are required!', 400
     print("test")  # Debugging statement
 
-    password = generate_password_hash(password).decode('utf-8')
     PUKs.generate_and_store_keys(username)
     public_key_email_bytes = read_from_file(username, 'public_email_x25519.bin')
 
@@ -64,7 +63,7 @@ def register():
         # Convert public_key_email_bytes to a format that can be sent in the request
         files = {
             'username': (None, username),
-            'hashed_password': (None, password),
+            'password': (None, password),
             'public_key_email_bytes': ('public_email_x25519.bin', public_key_email_bytes)
         }
 
@@ -158,7 +157,7 @@ def get_user_ids_and_public_keys(from_address, to_address, cc_address=None, bcc_
     }
 
     try:
-        response = requests.post(url + "get_user_ids_and_public_keys", data=data, verify=False)
+        response = requests.post(url + "get_user_ids_and_public_keys", json=data, headers=headers, verify=False)
         response.raise_for_status()
 
         data = response.json()
@@ -178,9 +177,9 @@ def get_user_ids_and_public_keys(from_address, to_address, cc_address=None, bcc_
         raise
 
 
-
 @app.route('/send_mail_with_sender', methods=['POST'])
 def send_mail_with_sender(conn=None):
+    print("test")
     data = request.get_json()
     from_address = data['from']
     to_address = data['to']
@@ -190,7 +189,7 @@ def send_mail_with_sender(conn=None):
     content = data['content']
     password = data['password']
     pieces = [subject, content]
-
+    pieces = [s.encode('utf-8') for s in pieces]
     try:
         user_ids, public_keys = get_user_ids_and_public_keys(from_address, to_address, cc_address, bcc_address)
         print("User IDs:", user_ids)
@@ -200,12 +199,13 @@ def send_mail_with_sender(conn=None):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-    sender_device_private_key = read_from_file(from_address, 'private_email_x25519.bin')
-    sender_device_private_key = x25519.X25519PrivateKey.from_private_bytes(sender_device_private_key)
-
+    # sender_device_private_key = read_from_file(from_address, 'private_email_x25519.bin')
+    # sender_device_private_key = x25519.X25519PrivateKey.from_private_bytes(sender_device_private_key)
+    user_ids_str_list = [str(user_id) for user_id in user_ids]
+    # 将列表转换为逗号分隔的字符串
+    user_ids = ",".join(user_ids_str_list)
     ciphertexts, bcc_commitment, commitment_key, recipient_digests_signature, public_key, recipient_ciphertexts, manifest_encrypted, manifest_encrypted_hash, xcha_nonces = main_encrypt(
-        pieces, bcc_address, public_keys, user_ids, 1.0, sender_device_private_key
-    )
+        pieces, bcc_address, public_keys, user_ids, "1.0")
 
     encryption_data = {
         'ciphertexts': ciphertexts,
@@ -218,97 +218,124 @@ def send_mail_with_sender(conn=None):
         'manifest_encrypted_hash': manifest_encrypted_hash,
         'xcha_nonces': xcha_nonces,
     }
-    sendmail(bcc_address, cc_address, encryption_data, from_address, to_address)
+
+
+
+    def encode_item(item):
+
+        if isinstance(item, bytes):
+            return base64.b64encode(item).decode('utf-8')
+        elif isinstance(item, list):
+            return [base64.b64encode(i).decode('utf-8') for i in item]
+        elif isinstance(item, X25519PublicKey):
+            public_key_bytes = item.public_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PublicFormat.Raw
+            )
+            return base64.b64encode(public_key_bytes).decode('utf-8')
+        else:
+            return item
+
+    encryption_data_encoded = {key: encode_item(value) for key, value in encryption_data.items()}
+
+    sendmail(bcc_address, cc_address, encryption_data_encoded, from_address, to_address,password=password)
     return jsonify({'message': 'Mail data stored successfully and encryption data sent to server'})
 
 
-def sendmail(bcc_address, cc_address, encryption_data, from_address, to_address):
-    conn = get_db_connection()
-    # Store email and encryption data in the database
-    with conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO public.mail (sender, receiver, cc, bcc, date, encryption_data)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (
-            from_address,
-            to_address[0],  # Assuming a single receiver for simplicity
-            cc_address,
-            bcc_address,
-            datetime.datetime.now(),
-            json.dumps(encryption_data)
-        ))
-        conn.commit()
-    conn.close()
+def decode_item(item):
+        if isinstance(item, str):
+            return base64.b64decode(item.encode('utf-8'))
+        elif isinstance(item, list):
+            return [base64.b64decode(i.encode('utf-8')) for i in item]
+        else:
+            return item
+
+def sendmail(bcc_address=None, cc_address=None, encryption_data=None, from_address=None, to_address=None, subject=None, content=None, password=None,
+             encryption_method=None):
+    headers = {'Content-Type': 'application/json'}
+
+    payload = {
+        'from': from_address,
+        'to': to_address,
+        'subject': subject,
+        'content': content,
+        'password': password,
+        'cc': cc_address,
+        'bcc': bcc_address,
+        'encryption_data': encryption_data,
+    }
+
+    try:
+        response = requests.post(url + '/send_mail_with_sender', json=payload, headers=headers, verify=False)
+        response.raise_for_status()
+        print(response.json()['message'])
+    except requests.RequestException as e:
+        print(f"HTTP request failed: {e}")
 
 
 @app.route('/receive_mail_with_receiver', methods=['POST'])
 def receive_mail_with_receiver():
-    data = request.form
-    username = data.get('username')
-    password = data.get('password')
+    data = request.form.to_dict()
 
-    conn = get_db_connection()
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT sender, receiver, cc, bcc, date, encryption_data
-            FROM public.mail
-            WHERE receiver = %s
-            ORDER BY date DESC
-        """, (username,))
-        mails = cur.fetchall()
+
+
+    payload = {'username': current_user, 'password': current_passphrase}
+    print(payload)
+    response = requests.post(url + 'receive_mail_with_receiver', json=payload, verify=False)
+    if response.status_code != 200:
+        return 'Failed to retrieve emails', 400
+
+    mails = response.json()
 
     decrypted_mails = []
-
     for mail in mails:
-        sender = mail[0]
-        receiver = mail[1]
-        cc = mail[2]
-        bcc = mail[3]
-        date = mail[4]
-        encryption_data = json.loads(mail[5])
+        sender = mail['sender']
+        receiver = mail['receiver']
+        cc = mail['cc']
+        bcc = mail['bcc']
+        date = mail['date']
 
-        # Read the recipient's private key for decryption
-        private_key_bytes = read_from_file(username, 'private_email_x25519.bin')
+        encryption_data = mail['encryption_data']
+
+        public_key = x25519.X25519PublicKey.from_public_bytes(read_from_file(current_user, 'public_email_x25519.bin'))
+
+        # 解码 encryption_data
+        encryption_data_decoded = {key: decode_item(value) for key, value in encryption_data.items()}
+
+        # 读取接收者的私钥
+        private_key_bytes = read_from_file(current_user, 'private_email_x25519.bin')
         private_key = x25519.X25519PrivateKey.from_private_bytes(private_key_bytes)
 
-        # Read the sender's public key
-        cur.execute("""
-            SELECT public_key_email_bytes
-            FROM public."user"
-            WHERE username = %s
-        """, (sender,))
-        sender_public_key_bytes = cur.fetchone()[0]
-        sender_public_key = x25519.X25519PublicKey.from_public_bytes(sender_public_key_bytes)
-
-        # Decrypt the email
+        # 解密邮件
         decrypted_pieces = decrypt_email(
-            encryption_data['ciphertexts'],
-            encryption_data['recipient_ciphertexts'][0],
-            encryption_data['public_key'],
+            encryption_data_decoded['ciphertexts'],
+            encryption_data_decoded['recipient_ciphertext'],  # 使用对应的 recipient_ciphertext
+            x25519.X25519PublicKey.from_public_bytes(encryption_data_decoded['public_key']),
             private_key,
-            sender_public_key,
-            encryption_data['manifest_encrypted'],
-            encryption_data['manifest_encrypted_hash'],
-            encryption_data['bcc_commitment'],
-            1.0,  # Assuming version 1.0 as used in encryption
-            encryption_data['xcha_nonces'][0],
-            encryption_data['user_ids'],
-            sender_device_key=sender_public_key
+            public_key,
+            encryption_data_decoded['manifest_encrypted'],
+            encryption_data_decoded['manifest_encrypted_hash'],
+            encryption_data_decoded['bcc_commitment'],
+            '1.0',  # 假设使用版本 1.0
+            encryption_data_decoded['xcha_nonce'],  # 使用对应的 xcha_nonce
+            encryption_data['user_ids'],  # 直接使用 user_ids 字符串
+
         )
 
         decrypted_mail = {
             'sender': sender,
             'receiver': receiver,
             'cc': cc,
+            'bcc': bcc,
             'date': date,
-            'subject': decrypted_pieces[0],
-            'content': decrypted_pieces[1]
+            'subject': decrypted_pieces[0].decode('utf-8'),
+            'content': decrypted_pieces[1].decode('utf-8')
         }
         decrypted_mails.append(decrypted_mail)
 
-    conn.close()
-
     return jsonify(decrypted_mails)
+
+
 
 
 if __name__ == '__main__':

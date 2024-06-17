@@ -55,10 +55,19 @@ def create_manifest(pieces):
 
 
 
-def main_encrypt(pieces, bcc, puks, user_ids, version, sender_device_key):
+def main_encrypt(pieces, bcc, puks, user_ids, version, sender_device_key=None):
     # puks 第一个是发送者的puk，后面是接收者的puk 是x25519公钥[]
     # user_ids 和 puks同样结构
     # sender_device_key是发送者的私钥
+
+    print("pieces:", pieces)
+    print("bcc:", bcc)
+    for puk in puks:
+        print("puk:", puk.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
+
+    print("user_ids:", user_ids)
+    print("version:", version)
+    print("sender_device_key:", sender_device_key)
 
     manifest, ciphertexts = create_manifest(pieces)
     shared_symmetric_key = os.urandom(32)  # Shared symmetric key for the manifest
@@ -81,9 +90,19 @@ def main_encrypt(pieces, bcc, puks, user_ids, version, sender_device_key):
         recipient_digests.append(recipient_digest)
         recipient_ciphertexts.append(recipient_box_ciphertext)
         xcha_nonces.append(xcha_nonce)
+    recipient_digests_signature=None
+    if sender_device_key:
+        recipient_digests_signature = create_recipient_list_signature(sender_device_key, recipient_digests)
 
-
-    recipient_digests_signature = create_recipient_list_signature(sender_device_key, recipient_digests)
+    print("ciphertexts:", ciphertexts)
+    print("bcc_commitment:", bcc_commitment)
+    print("commitment_key:", commitment_key)
+    print("recipient_digests_signature:", recipient_digests_signature)
+    print("public_key:", public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
+    print("recipient_ciphertexts:", recipient_ciphertexts)
+    print("manifest_encrypted:", manifest_encrypted)
+    print("manifest_encrypted_hash:", manifest_encrypted_hash)
+    print("xcha_nonces:", xcha_nonces)
     return ciphertexts, bcc_commitment, commitment_key, recipient_digests_signature, public_key, recipient_ciphertexts,manifest_encrypted,manifest_encrypted_hash,xcha_nonces
 
 
